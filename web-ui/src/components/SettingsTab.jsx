@@ -1,12 +1,22 @@
 import { useState } from 'react'
 
-const DEVICE_TYPES = ['D', 'M', 'Y', 'X']
+export default function SettingsTab({
+  protocols, activeProtocol, onSetProtocol,
+  addresses, onAdd, onRemove, onUpdate, onToggleGraph,
+}) {
+  const currentProto = protocols.find(p => p.id === activeProtocol) || protocols[0]
+  const filteredAddresses = addresses.filter(a => a.protocol === activeProtocol)
 
-export default function SettingsTab({ addresses, onAdd, onRemove, onUpdate, onToggleGraph }) {
-  const [device, setDevice] = useState('D')
+  const [device, setDevice] = useState(currentProto.devices[0])
   const [address, setAddress] = useState('')
   const [count, setCount] = useState('1')
   const [label, setLabel] = useState('')
+
+  const handleProtocolChange = (protoId) => {
+    onSetProtocol(protoId)
+    const proto = protocols.find(p => p.id === protoId)
+    if (proto) setDevice(proto.devices[0])
+  }
 
   const handleAdd = (e) => {
     e.preventDefault()
@@ -14,7 +24,7 @@ export default function SettingsTab({ addresses, onAdd, onRemove, onUpdate, onTo
     const cnt = parseInt(count, 10)
     if (isNaN(addr) || addr < 0 || isNaN(cnt) || cnt < 1) return
 
-    onAdd(device, addr, cnt, label)
+    onAdd(activeProtocol, device, addr, cnt, label)
     setAddress('')
     setCount('1')
     setLabel('')
@@ -22,10 +32,35 @@ export default function SettingsTab({ addresses, onAdd, onRemove, onUpdate, onTo
 
   return (
     <main className="main">
+      {/* Protocol Selection */}
+      <div className="panel">
+        <div className="panel-header">
+          <span className="panel-title">Communication Protocol</span>
+        </div>
+        <div className="panel-body">
+          <div className="protocol-grid">
+            {protocols.map(p => (
+              <label key={p.id} className={`protocol-card ${activeProtocol === p.id ? 'active' : ''}`}>
+                <input
+                  type="radio"
+                  name="protocol"
+                  value={p.id}
+                  checked={activeProtocol === p.id}
+                  onChange={() => handleProtocolChange(p.id)}
+                />
+                <span className="protocol-name">{p.name}</span>
+                <span className="protocol-devices">{p.devices.join(', ')}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+      </div>
+
       {/* Add Address Form */}
       <div className="panel">
         <div className="panel-header">
           <span className="panel-title">Add Device Address</span>
+          <span className="panel-badge">{currentProto.name}</span>
         </div>
         <div className="panel-body">
           <form className="settings-form-row" onSubmit={handleAdd}>
@@ -34,8 +69,8 @@ export default function SettingsTab({ addresses, onAdd, onRemove, onUpdate, onTo
               value={device}
               onChange={e => setDevice(e.target.value)}
             >
-              {DEVICE_TYPES.map(d => (
-                <option key={d} value={d}>{d} Register</option>
+              {currentProto.devices.map(d => (
+                <option key={d} value={d}>{d}</option>
               ))}
             </select>
 
@@ -74,21 +109,21 @@ export default function SettingsTab({ addresses, onAdd, onRemove, onUpdate, onTo
           </form>
 
           <div className="settings-hint">
-            Example: Device=D, Address=0, Count=10 reads D0 ~ D9
+            Example: {currentProto.devices[0]}0, Count=10 reads {currentProto.devices[0]}0 ~ {currentProto.devices[0]}9
           </div>
         </div>
       </div>
 
-      {/* Configured Addresses */}
+      {/* Configured Addresses for active protocol */}
       <div className="panel">
         <div className="panel-header">
-          <span className="panel-title">Configured Addresses</span>
-          <span className="panel-badge">{addresses.length} entries</span>
+          <span className="panel-title">Configured Addresses ({currentProto.name})</span>
+          <span className="panel-badge">{filteredAddresses.length} entries</span>
         </div>
         <div className="panel-body">
-          {addresses.length === 0 ? (
+          {filteredAddresses.length === 0 ? (
             <div style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '24px 0' }}>
-              No addresses configured. Add one above.
+              No addresses configured for {currentProto.name}. Add one above.
             </div>
           ) : (
             <table className="device-table">
@@ -103,7 +138,7 @@ export default function SettingsTab({ addresses, onAdd, onRemove, onUpdate, onTo
                 </tr>
               </thead>
               <tbody>
-                {addresses.map(a => (
+                {filteredAddresses.map(a => (
                   <tr key={a.id}>
                     <td>
                       <span style={{ color: 'var(--accent-light)', fontWeight: 600 }}>
@@ -133,10 +168,7 @@ export default function SettingsTab({ addresses, onAdd, onRemove, onUpdate, onTo
                       </label>
                     </td>
                     <td>
-                      <button
-                        className="btn-remove"
-                        onClick={() => onRemove(a.id)}
-                      >
+                      <button className="btn-remove" onClick={() => onRemove(a.id)}>
                         Remove
                       </button>
                     </td>

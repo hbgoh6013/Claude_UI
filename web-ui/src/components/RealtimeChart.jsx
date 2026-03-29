@@ -22,7 +22,7 @@ const COLORS = [
  * @param {array} lineKeys - 그래프에 표시할 키 목록 ["D0", "D10", "M100", ...]
  * @param {object} labels - 키별 라벨 매핑 { D0: "Temperature", D10: "Pressure" }
  */
-export default function RealtimeChart({ data, lineKeys, labels = {} }) {
+export default function RealtimeChart({ data, lineKeys, labels = {}, height = 350 }) {
   if (!data || data.length === 0 || lineKeys.length === 0) {
     return (
       <div style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '40px 0' }}>
@@ -32,7 +32,7 @@ export default function RealtimeChart({ data, lineKeys, labels = {} }) {
   }
 
   return (
-    <ResponsiveContainer width="100%" height={300}>
+    <ResponsiveContainer width="100%" height={height}>
       <LineChart data={data}>
         <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
         <XAxis

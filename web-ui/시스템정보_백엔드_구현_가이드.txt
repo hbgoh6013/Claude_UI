@@ -1,0 +1,196 @@
+========================================================
+  시스템 정보 WebSocket 전송 - Qt C++ 구현 가이드
+========================================================
+
+[목적]
+C++ 백엔드에서 CPU, 메모리, 디스크 사용량을 읽어서
+WebSocket JSON에 포함하여 웹 UI에 전송
+
+[웹 UI 동작]
+- 백엔드에서 "system" 필드가 JSON에 포함되면 자동 표시
+- 디스크는 전송된 드라이브만 표시 (없는 드라이브는 안 보임)
+
+
+========================================================
+  1. JSON 형식 (sendPlcData에 추가)
+========================================================
+
+현재 sendPlcData()에서 보내는 JSON에 "system" 필드를 추가:
+
+{
+  "registers": [...],
+  "devices": [...],
+  "system": {
+    "cpu": 35,
+    "memory": 62,
+    "disks": [
+      { "label": "C:", "used": 186, "total": 256 },
+      { "label": "D:", "used": 420, "total": 1024 }
+    ]
+  }
+}
+
+* cpu, memory: 0~100 정수 (퍼센트)
+* disks: 배열 - 존재하는 드라이브만 포함
+* used, total: GB 단위 정수
+
+
+========================================================
+  2. CPU 사용률 읽기 (Windows)
+========================================================
+
+#include <windows.h>
+#include <pdh.h>
+#pragma comment(lib, "pdh.lib")
+
+// 클래스 멤버로 선언
+PDH_HQUERY cpuQuery;
+PDH_HCOUNTER cpuCounter;
+
+// 초기화 (생성자에서 1회)
+PdhOpenQuery(NULL, 0, &cpuQuery);
+PdhAddCounter(cpuQuery, L"\\Processor(_Total)\\% Processor Time", 0, &cpuCounter);
+PdhCollectQueryData(cpuQuery);  // 첫 호출은 기준점
+
+// 사용률 읽기 (sendPlcData 호출 시마다)
+PdhCollectQueryData(cpuQuery);
+PDH_FMT_COUNTERVALUE counterVal;
+PdhGetFormattedCounterValue(cpuCounter, PDH_FMT_DOUBLE, NULL, &counterVal);
+int cpuPercent = (int)counterVal.doubleValue;
+
+// 정리 (소멸자에서)
+PdhCloseQuery(cpuQuery);
+
+
+========================================================
+  3. 메모리 사용률 읽기 (Windows)
+========================================================
+
+#include <windows.h>
+
+MEMORYSTATUSEX memInfo;
+memInfo.dwLength = sizeof(MEMORYSTATUSEX);
+GlobalMemoryStatusEx(&memInfo);
+
+int memoryPercent = (int)memInfo.dwMemoryLoad;  // 0~100
+
+
+========================================================
+  4. 디스크 사용량 읽기 (Windows)
+========================================================
+
+#include <windows.h>
+#include <QJsonArray>
+
+QJsonArray getDisks() {
+    QJsonArray disks;
+
+    // 확인할 드라이브 목록
+    QStringList drives = {"C:\\", "D:\\", "E:\\"};
+
+    for (const QString &drive : drives) {
+        ULARGE_INTEGER freeBytes, totalBytes, totalFreeBytes;
+
+        // 드라이브가 존재하는지 + 용량 읽기
+        if (GetDiskFreeSpaceExW(
+                drive.toStdWString().c_str(),
+                &freeBytes, &totalBytes, &totalFreeBytes)) {
+
+            int totalGB = (int)(totalBytes.QuadPart / (1024ULL * 1024 * 1024));
+            int freeGB  = (int)(totalFreeBytes.QuadPart / (1024ULL * 1024 * 1024));
+            int usedGB  = totalGB - freeGB;
+
+            // totalGB가 0이면 (가상 드라이브 등) 건너뛰기
+            if (totalGB > 0) {
+                QJsonObject disk;
+                disk["label"] = drive.left(2);  // "C:" or "D:"
+                disk["used"]  = usedGB;
+                disk["total"] = totalGB;
+                disks.append(disk);
+            }
+        }
+        // GetDiskFreeSpaceEx 실패 = 드라이브 없음 -> 건너뜀
+    }
+
+    return disks;
+}
+
+
+========================================================
+  5. sendPlcData()에 통합하기
+========================================================
+
+void Claude_UI::sendPlcData()
+{
+    if (m_wsServer->clientCount() == 0) return;
+
+    QJsonObject data;
+
+    // ... 기존 registers, devices 코드 ...
+
+    // 시스템 정보 추가
+    QJsonObject system;
+
+    // CPU
+    PdhCollectQueryData(cpuQuery);
+    PDH_FMT_COUNTERVALUE counterVal;
+    PdhGetFormattedCounterValue(cpuCounter, PDH_FMT_DOUBLE, NULL, &counterVal);
+    system["cpu"] = (int)counterVal.doubleValue;
+
+    // 메모리
+    MEMORYSTATUSEX memInfo;
+    memInfo.dwLength = sizeof(MEMORYSTATUSEX);
+    GlobalMemoryStatusEx(&memInfo);
+    system["memory"] = (int)memInfo.dwMemoryLoad;
+
+    // 디스크
+    system["disks"] = getDisks();
+
+    data["system"] = system;
+
+    m_wsServer->sendData(data);
+}
+
+
+========================================================
+  6. .vcxproj 추가 설정
+========================================================
+
+PDH 라이브러리 링크가 필요합니다.
+
+방법 1: 코드에 추가 (간단)
+  #pragma comment(lib, "pdh.lib")
+
+방법 2: vcxproj에서 추가
+  <Link>
+    <AdditionalDependencies>pdh.lib;%(AdditionalDependencies)</AdditionalDependencies>
+  </Link>
+
+
+========================================================
+  7. Qt 5.12.12 호환 참고
+========================================================
+
+위 코드는 모두 Windows API를 사용하므로 Qt 버전과 무관합니다.
+Qt 5.12.12 / Qt 6.x 양쪽 다 동일하게 동작합니다.
+
+필요한 헤더:
+  #include <windows.h>   (메모리, 디스크)
+  #include <pdh.h>       (CPU)
+
+Qt 고유 헤더:
+  #include <QJsonObject>
+  #include <QJsonArray>
+
+
+========================================================
+  요약
+========================================================
+
+1. 생성자에서 PDH CPU 카운터 초기화
+2. sendPlcData()에서 CPU/메모리/디스크 정보를 JSON에 추가
+3. 소멸자에서 PDH 정리
+4. pdh.lib 링크 추가
+5. D: 드라이브가 없으면 자동으로 빠짐 (GetDiskFreeSpaceEx 실패)
+
+========================================================

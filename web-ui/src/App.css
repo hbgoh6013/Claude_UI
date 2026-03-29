@@ -21,20 +21,23 @@
 }
 
 .header-logo {
-  font-size: 18px;
-  font-weight: 600;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.logo-samsung {
+  font-size: 20px;
+  font-weight: 700;
   color: var(--text-primary);
+  letter-spacing: 2px;
 }
 
-.header-logo span {
-  color: var(--accent-light);
-}
-
-.header-badge {
-  font-size: 11px;
-  padding: 2px 8px;
-  border-radius: 10px;
-  font-weight: 500;
+.logo-sdi {
+  font-size: 20px;
+  font-weight: 700;
+  color: #3b82f6;
+  letter-spacing: 2px;
 }
 
 .header-right {
@@ -287,10 +290,39 @@
 /* Tab Bar */
 .tab-bar {
   display: flex;
+  align-items: center;
+  justify-content: space-between;
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border);
   padding: 0 24px;
+}
+
+.tab-bar-left {
+  display: flex;
   gap: 0;
+}
+
+.tab-bar-right {
+  display: flex;
+  align-items: center;
+}
+
+.demo-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.demo-toggle input {
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.demo-label {
+  user-select: none;
 }
 
 .tab-btn {
@@ -318,6 +350,159 @@
 .chart-container {
   height: 320px;
   padding: 16px 20px;
+}
+
+.chart-container-large {
+  height: 200px;
+  padding: 8px 12px;
+  min-height: 200px;
+}
+
+.chart-panel {
+  flex-shrink: 0;
+}
+
+/* Individual charts grid */
+.individual-charts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(480px, 1fr));
+  gap: 16px;
+}
+
+.chart-panel-small {
+  min-height: 0;
+}
+
+.chart-container-small {
+  height: 250px;
+  min-height: 250px;
+  padding: 8px 12px;
+}
+
+.chart-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+/* Log panel - fixed height with scroll */
+.log-panel {
+  max-height: 400px;
+}
+
+.log-body {
+  max-height: 340px;
+  overflow-y: auto;
+}
+
+.log-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.log-body::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+  border-radius: 3px;
+}
+
+.log-body::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+.log-body::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* System Monitor */
+.system-monitor {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 72px;
+  padding: 8px 0;
+  flex-wrap: wrap;
+}
+
+.system-monitor-gauges {
+  display: flex;
+  gap: 56px;
+}
+
+.system-monitor-disks {
+  display: flex;
+  gap: 56px;
+}
+
+.gauge-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.gauge-svg {
+  width: 90px;
+  height: 90px;
+}
+
+.gauge-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.disk-3d-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.disk-3d-svg {
+  width: 120px;
+  height: 110px;
+}
+
+.disk-3d-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.disk-3d-detail {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: 'Consolas', 'SF Mono', monospace;
+}
+
+/* Section Divider */
+.section-divider {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 8px 0;
+}
+
+.section-divider::before,
+.section-divider::after {
+  content: '';
+  flex: 1;
+  height: 2px;
+  background: var(--border);
+}
+
+.section-divider-label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-muted);
+  white-space: nowrap;
 }
 
 /* Settings Form */
@@ -356,6 +541,50 @@
 .settings-input-inline:hover,
 .settings-input-inline:focus {
   border-color: var(--border);
+}
+
+/* Protocol selection */
+.protocol-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 10px;
+}
+
+.protocol-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 16px;
+  background: var(--bg-secondary);
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.protocol-card:hover {
+  border-color: var(--text-muted);
+}
+
+.protocol-card.active {
+  border-color: var(--accent);
+  background: rgba(59, 130, 246, 0.08);
+}
+
+.protocol-card input[type="radio"] {
+  display: none;
+}
+
+.protocol-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.protocol-devices {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: 'Consolas', 'SF Mono', monospace;
 }
 
 .settings-hint {

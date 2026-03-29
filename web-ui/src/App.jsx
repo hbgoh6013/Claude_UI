@@ -8,10 +8,6 @@ import SettingsTab from './components/SettingsTab'
 import './App.css'
 
 const emptyData = {
-  temperature: '--',
-  pressure: '--',
-  motorSpeed: 0,
-  productCount: 0,
   devices: [],
   registers: [],
 }
@@ -20,6 +16,7 @@ function App() {
   const { data, connected, logs, send } = useWebSocket('ws://localhost:8080')
   const settings = useSettings(send, connected)
   const [activeTab, setActiveTab] = useState('monitor')
+  const [demoMode, setDemoMode] = useState(false)
   const [lastUpdate, setLastUpdate] = useState(new Date())
 
   const displayData = data || emptyData
@@ -28,32 +25,46 @@ function App() {
     if (data) setLastUpdate(new Date())
   }, [data])
 
-  // 그래프 활성화된 주소 목록
-  const graphAddresses = useMemo(() =>
-    settings.addresses.filter(a => a.graphEnabled),
-    [settings.addresses]
-  )
+  // 라인 키와 라벨 계산 (선택/비선택 분리)
+  const { overlaidKeys, overlaidLabels, individualKeys, individualLabels, allLabels } = useMemo(() => {
+    const oKeys = []
+    const oLabels = {}
+    const iKeys = []
+    const iLabels = {}
+    const aLabels = {}
 
-  // 차트에 표시할 라인 키와 라벨 계산
-  const { lineKeys, lineLabels } = useMemo(() => {
-    const keys = []
-    const labels = {}
-    for (const addr of graphAddresses) {
+    for (const addr of settings.addresses) {
       for (let i = 0; i < addr.count; i++) {
         const key = `${addr.device}${addr.address + i}`
-        keys.push(key)
-        labels[key] = addr.label && addr.count === 1
+        const label = addr.label && addr.count === 1
           ? addr.label
           : addr.label
             ? `${addr.label} [${key}]`
             : key
+
+        aLabels[key] = label
+
+        if (addr.graphEnabled) {
+          oKeys.push(key)
+          oLabels[key] = label
+        } else {
+          iKeys.push(key)
+          iLabels[key] = label
+        }
       }
     }
-    return { lineKeys: keys, lineLabels: labels }
-  }, [graphAddresses])
 
-  // 차트 히스토리 데이터
-  const chartData = useChartHistory(data, graphAddresses)
+    return {
+      overlaidKeys: oKeys,
+      overlaidLabels: oLabels,
+      individualKeys: iKeys,
+      individualLabels: iLabels,
+      allLabels: aLabels,
+    }
+  }, [settings.addresses])
+
+  // 모든 주소의 차트 히스토리 데이터
+  const chartData = useChartHistory(data, settings.addresses)
 
   return (
     <div className="app">
@@ -61,27 +72,21 @@ function App() {
       <header className="header">
         <div className="header-left">
           <div className="header-logo">
-            PLC <span>Monitor</span>
+            <span className="logo-samsung">SAMSUNG</span>
+            <span className="logo-sdi">SDI</span>
           </div>
-          <span className="header-badge" style={{
-            background: connected ? 'var(--success-bg)' : 'var(--danger-bg)',
-            color: connected ? 'var(--success)' : 'var(--danger)',
-          }}>
-            CC-Link IE Field
-          </span>
         </div>
         <div className="header-right">
           <div className="status-indicator">
             <div className={`status-dot ${connected ? 'connected' : 'disconnected'}`} />
             <span>{connected ? 'Connected' : 'Disconnected'}</span>
           </div>
-          <span>Mitsubishi Q Series</span>
           <span>Updated: {lastUpdate.toTimeString().slice(0, 8)}</span>
         </div>
       </header>
 
       {/* Tab Bar */}
-      <TabBar activeTab={activeTab} onTabChange={setActiveTab} />
+      <TabBar activeTab={activeTab} onTabChange={setActiveTab} demoMode={demoMode} onToggleDemo={() => setDemoMode(d => !d)} />
 
       {/* Tab Content */}
       {activeTab === 'monitor' ? (
@@ -89,11 +94,19 @@ function App() {
           displayData={displayData}
           logs={logs}
           chartData={chartData}
-          lineKeys={lineKeys}
-          lineLabels={lineLabels}
+          overlaidKeys={overlaidKeys}
+          overlaidLabels={overlaidLabels}
+          individualKeys={individualKeys}
+          individualLabels={individualLabels}
+          allAddresses={settings.addresses}
+          demoMode={demoMode}
+          connected={connected}
         />
       ) : (
         <SettingsTab
+          protocols={settings.protocols}
+          activeProtocol={settings.activeProtocol}
+          onSetProtocol={settings.setActiveProtocol}
           addresses={settings.addresses}
           onAdd={settings.addAddress}
           onRemove={settings.removeAddress}
