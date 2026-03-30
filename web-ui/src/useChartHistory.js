@@ -20,12 +20,17 @@ export default function useChartHistory(data, allAddresses) {
 
     const point = { time }
 
+    // Build a Map for O(1) register lookups instead of O(n) find()
+    const registerMap = new Map()
+    for (const r of data.registers) {
+      registerMap.set(r.addr, r.value)
+    }
+
     for (const addr of allAddresses) {
       for (let i = 0; i < addr.count; i++) {
         const key = `${addr.device}${addr.address + i}`
-        const reg = data.registers.find(r => r.addr === key)
-        if (reg !== undefined) {
-          point[key] = reg.value
+        if (registerMap.has(key)) {
+          point[key] = registerMap.get(key)
         }
       }
     }

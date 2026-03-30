@@ -1,62 +1,6 @@
-import { useState, useEffect, useRef, useMemo } from 'react'
 import RealtimeChart from './RealtimeChart'
 import SystemMonitor from './SystemMonitor'
-
-// 사용자가 등록한 주소를 기반으로 데모 데이터 생성
-function generateDemoPoint(allKeys, prevBuffer) {
-  const now = new Date()
-  const time = now.toTimeString().slice(0, 8)
-  const point = { time }
-  const prev = prevBuffer.length > 0 ? prevBuffer[prevBuffer.length - 1] : null
-
-  for (const key of allKeys) {
-    const isbit = key.startsWith('M') || key.startsWith('X') || key.startsWith('Y')
-      || key.startsWith('CO') || key.startsWith('DI')
-      || key.startsWith('I') || key.startsWith('Q')
-
-    if (isbit) {
-      // 비트 디바이스: 0 또는 1, 가끔 토글
-      point[key] = prev && prev[key] !== undefined
-        ? (Math.random() > 0.95 ? (prev[key] === 0 ? 1 : 0) : prev[key])
-        : Math.round(Math.random())
-    } else {
-      // 워드 디바이스: 랜덤 워크
-      const base = 5000 + Math.abs(hashCode(key) % 25000)
-      const prevVal = prev && prev[key] !== undefined ? prev[key] : base
-      point[key] = Math.round(Math.max(0, Math.min(65535, prevVal + (Math.random() - 0.5) * 200)))
-    }
-  }
-
-  return point
-}
-
-function hashCode(str) {
-  let hash = 0
-  for (let i = 0; i < str.length; i++) {
-    hash = ((hash << 5) - hash) + str.charCodeAt(i)
-    hash |= 0
-  }
-  return hash
-}
-
-// 등록된 주소에서 모든 개별 키 추출
-function expandKeys(addresses) {
-  const keys = []
-  for (const addr of addresses) {
-    for (let i = 0; i < addr.count; i++) {
-      keys.push(`${addr.device}${addr.address + i}`)
-    }
-  }
-  return keys
-}
-
-const DEMO_DEVICES = [
-  { station: 1, name: 'Formation Charger #1', type: 'Remote Device', status: 'RUN', value: 85 },
-  { station: 2, name: 'Formation Charger #2', type: 'Remote Device', status: 'RUN', value: 72 },
-  { station: 3, name: 'Aging Chamber', type: 'Remote I/O', status: 'RUN', value: 45 },
-  { station: 4, name: 'Inspection Unit', type: 'Remote Device', status: 'RUN', value: 98 },
-  { station: 5, name: 'Stacking Machine', type: 'Remote I/O', status: 'RUN', value: 63 },
-]
+import useDemoMode from '../useDemoMode'
 
 export default function MonitorTab({
   displayData, logs, chartData,
@@ -65,67 +9,18 @@ export default function MonitorTab({
   allAddresses,
   demoMode, connected,
 }) {
-  const [demoBuffer, setDemoBuffer] = useState([])
-  const [demoRegisters, setDemoRegisters] = useState([])
-  const demoBufferRef = useRef([])
-
-  // 등록된 모든 키
-  const allKeys = useMemo(() => expandKeys(allAddresses), [allAddresses])
-
-  // demo용 overlaid/individual 키 계산
-  const demoOverlaidKeys = useMemo(() => {
-    const keys = []
-    for (const addr of allAddresses.filter(a => a.graphEnabled)) {
-      for (let i = 0; i < addr.count; i++) keys.push(`${addr.device}${addr.address + i}`)
-    }
-    return keys
-  }, [allAddresses])
-
-  const demoIndividualKeys = useMemo(() => {
-    const keys = []
-    for (const addr of allAddresses.filter(a => !a.graphEnabled)) {
-      for (let i = 0; i < addr.count; i++) keys.push(`${addr.device}${addr.address + i}`)
-    }
-    return keys
-  }, [allAddresses])
-
-  // 라벨 매핑
-  const allLabelsMap = useMemo(() => {
-    const m = {}
-    for (const addr of allAddresses) {
-      for (let i = 0; i < addr.count; i++) {
-        const key = `${addr.device}${addr.address + i}`
-        m[key] = addr.label && addr.count === 1
-          ? addr.label
-          : addr.label ? `${addr.label} [${key}]` : key
-      }
-    }
-    return m
-  }, [allAddresses])
-
-  useEffect(() => {
-    if (demoMode && allKeys.length > 0) {
-      demoBufferRef.current = []
-      const timer = setInterval(() => {
-        const point = generateDemoPoint(allKeys, demoBufferRef.current)
-        demoBufferRef.current = [...demoBufferRef.current, point].slice(-60)
-        setDemoBuffer([...demoBufferRef.current])
-        setDemoRegisters(allKeys.map(key => ({ addr: key, value: point[key] })))
-      }, 1000)
-      return () => clearInterval(timer)
-    } else {
-      demoBufferRef.current = []
-      setDemoBuffer([])
-      setDemoRegisters([])
-    }
-  }, [demoMode, allKeys.join(',')])
+  const {
+    demoBuffer, demoRegisters,
+    demoOverlaidKeys, demoIndividualKeys,
+    allLabelsMap, demoDevices,
+  } = useDemoMode(demoMode, allAddresses)
 
   const activeChartData = demoMode ? demoBuffer : chartData
   const activeOverlaidKeys = demoMode ? demoOverlaidKeys : overlaidKeys
   const activeOverlaidLabels = demoMode ? allLabelsMap : overlaidLabels
   const activeIndividualKeys = demoMode ? demoIndividualKeys : individualKeys
   const activeIndividualLabels = demoMode ? allLabelsMap : individualLabels
-  const activeDevices = demoMode ? DEMO_DEVICES : displayData.devices
+  const activeDevices = demoMode ? demoDevices : displayData.devices
   const activeRegisters = demoMode ? demoRegisters : displayData.registers
   const isConnected = demoMode ? true : connected
   const hasAnyCharts = activeOverlaidKeys.length > 0 || activeIndividualKeys.length > 0
@@ -215,10 +110,7 @@ export default function MonitorTab({
                     <td>{d.name}</td>
                     <td>{d.type}</td>
                     <td>
-                      <span style={{
-                        color: d.status === 'RUN' ? 'var(--success)' :
-                               d.status === 'ERR' ? 'var(--danger)' : 'var(--warning)'
-                      }}>
+                      <span className={`status-text-${d.status === 'RUN' ? 'success' : d.status === 'ERR' ? 'danger' : 'warning'}`}>
                         {d.status}
                       </span>
                     </td>
@@ -248,7 +140,7 @@ export default function MonitorTab({
         </div>
 
         {/* System Monitor */}
-        <div className="panel" style={{ gridColumn: '1 / -1' }}>
+        <div className="panel panel-full-width">
           <div className="panel-header">
             <span className="panel-title">System Resources</span>
           </div>
@@ -258,7 +150,7 @@ export default function MonitorTab({
         </div>
 
         {/* Communication Log */}
-        <div className="panel log-panel" style={{ gridColumn: '1 / -1' }}>
+        <div className="panel log-panel panel-full-width">
           <div className="panel-header">
             <span className="panel-title">Communication Log</span>
             <span className="panel-badge">{logs.length} entries</span>
@@ -266,7 +158,7 @@ export default function MonitorTab({
           <div className="panel-body log-body">
             <div className="log-list">
               {logs.map((log, i) => (
-                <div key={i} className={`log-entry ${log.type}`}>
+                <div key={`${log.time}-${i}`} className={`log-entry ${log.type}`}>
                   <span className="log-time">{log.time}</span>
                   <span className="log-msg">{log.msg}</span>
                 </div>

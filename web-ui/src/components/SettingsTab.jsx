@@ -79,25 +79,23 @@ export default function SettingsTab({
             </select>
 
             <input
-              className="settings-input"
+              className="settings-input settings-input-address"
               type="number"
               min="0"
               placeholder="Start Address"
               value={address}
               onChange={e => setAddress(e.target.value)}
               required
-              style={{ width: 130 }}
             />
 
             <input
-              className="settings-input"
+              className="settings-input settings-input-count"
               type="number"
               min="1"
               placeholder="Count"
               value={count}
               onChange={e => setCount(e.target.value)}
               required
-              style={{ width: 80 }}
             />
 
             <select
@@ -111,12 +109,11 @@ export default function SettingsTab({
             </select>
 
             <input
-              className="settings-input"
+              className="settings-input settings-input-label"
               type="text"
               placeholder="Label (optional)"
               value={label}
               onChange={e => setLabel(e.target.value)}
-              style={{ flex: 1, minWidth: 140 }}
             />
 
             <button className="btn-add" type="submit">Add</button>
@@ -136,7 +133,7 @@ export default function SettingsTab({
         </div>
         <div className="panel-body">
           {filteredAddresses.length === 0 ? (
-            <div style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '24px 0' }}>
+            <div className="settings-empty">
               No addresses configured for {currentProto.name}. Add one above.
             </div>
           ) : (
@@ -156,7 +153,7 @@ export default function SettingsTab({
                 {filteredAddresses.map(a => (
                   <tr key={a.id}>
                     <td>
-                      <span style={{ color: 'var(--accent-light)', fontWeight: 600 }}>
+                      <span className="settings-device-name">
                         {a.device}
                       </span>
                     </td>
@@ -164,7 +161,7 @@ export default function SettingsTab({
                       {a.device}{a.address} ~ {a.device}{a.address + a.count - 1}
                     </td>
                     <td>{a.count}</td>
-                    <td style={{ color: 'var(--text-muted)', fontSize: '0.85em' }}>
+                    <td className="settings-data-type">
                       {a.dataType || 'Word'}
                     </td>
                     <td>

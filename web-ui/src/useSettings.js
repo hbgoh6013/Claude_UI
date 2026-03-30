@@ -16,7 +16,7 @@ const PROTOCOLS = [
  * - localStorage에 자동 저장/불러오기
  * - WebSocket으로 C++ 백엔드에 설정 전송
  */
-export default function useSettings(send, connected) {
+export default function useSettings(send) {
   const [state, setState] = useState(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY)
@@ -31,7 +31,7 @@ export default function useSettings(send, connected) {
         }
         return parsed
       }
-    } catch (e) {
+    } catch {
       // ignore
     }
     return { activeProtocol: 'cclink', addresses: [] }
@@ -41,7 +41,11 @@ export default function useSettings(send, connected) {
 
   // localStorage에 저장
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
+    } catch {
+      console.warn('[useSettings] Failed to save settings to localStorage')
+    }
   }, [state])
 
   // 연결되면 현재 설정을 백엔드에 전송

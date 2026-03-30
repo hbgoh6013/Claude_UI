@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import {
   ResponsiveContainer,
   LineChart,
@@ -35,6 +35,20 @@ export default function RealtimeChart({ data, lineKeys, labels = {}, height = 35
   const [pickerKey, setPickerKey] = useState(null)
   const pickerRef = useRef(null)
 
+  // Close color picker when clicking outside
+  const handleClickOutside = useCallback((e) => {
+    if (pickerRef.current && !pickerRef.current.contains(e.target)) {
+      setPickerKey(null)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (pickerKey !== null) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [pickerKey, handleClickOutside])
+
   function getColor(key, index) {
     return colorMap[key] || PALETTE[index % PALETTE.length].color
   }
@@ -46,7 +60,7 @@ export default function RealtimeChart({ data, lineKeys, labels = {}, height = 35
 
   if (!data || data.length === 0 || lineKeys.length === 0) {
     return (
-      <div style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '40px 0' }}>
+      <div className="empty-state">
         Waiting for data...
       </div>
     )

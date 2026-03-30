@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 
 // 3D 디스크 SVG 컴포넌트
 function Disk3D({ label, usedPercent, usedGB, totalGB }) {
-  const angle = (usedPercent / 100) * 360
   const color = usedPercent > 90 ? '#ef4444' : usedPercent > 70 ? '#f59e0b' : '#3b82f6'
   const bgColor = '#2e3346'
 
@@ -114,17 +113,12 @@ export default function SystemMonitor({ demoMode }) {
   useEffect(() => {
     function updateStats() {
       if (demoMode) {
-        // 데모 데이터
+        // 데모 데이터 - single setState call
         setStats(prev => ({
-          cpu: Math.min(100, Math.max(0, (prev.cpu || 35) + (Math.random() - 0.5) * 10)),
-          memory: Math.min(100, Math.max(0, (prev.memory || 62) + (Math.random() - 0.5) * 3)),
+          cpu: Math.round(Math.min(100, Math.max(0, (prev.cpu || 35) + (Math.random() - 0.5) * 10))),
+          memory: Math.round(Math.min(100, Math.max(0, (prev.memory || 62) + (Math.random() - 0.5) * 3))),
           diskC: { used: 186, total: 256, percent: 73 },
           diskD: { used: 420, total: 1024, percent: 41 },
-        }))
-        setStats(prev => ({
-          ...prev,
-          cpu: Math.round(prev.cpu),
-          memory: Math.round(prev.memory),
         }))
       }
       // 실제 연결 시에는 C++ 백엔드에서 시스템 정보를 전송받음
