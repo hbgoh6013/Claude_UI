@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head><title>WebSocket Comparison Test</title></head>
+<body>
+<h2>WebSocket Comparison Test</h2>
+<p>This page tests both C++ (port 18080) and Node.js (port 19080) WebSocket servers simultaneously.</p>
+<div id="log" style="font-family:monospace; white-space:pre-wrap;"></div>
+<script>
+function log(msg) {
+  document.getElementById('log').textContent += new Date().toTimeString().slice(0,8) + ' ' + msg + '\n';
+  console.log(msg);
+}
+
+function testWebSocket(label, url) {
+  log(`[${label}] Connecting to ${url}...`);
+  const ws = new WebSocket(url);
+
+  ws.onopen = () => log(`[${label}] OPEN - connected!`);
+  ws.onmessage = (e) => log(`[${label}] MESSAGE: ${e.data.substring(0, 200)}`);
+  ws.onerror = (e) => log(`[${label}] ERROR`);
+  ws.onclose = (e) => log(`[${label}] CLOSE code=${e.code} reason="${e.reason}" clean=${e.wasClean}`);
+}
+
+// Test C++ server
+testWebSocket('C++', 'ws://127.0.0.1:18080');
+
+// Test Node.js server
+testWebSocket('Node', 'ws://127.0.0.1:19080');
+</script>
+</body>
+</html>

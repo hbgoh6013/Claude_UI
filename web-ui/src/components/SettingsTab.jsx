@@ -11,6 +11,9 @@ export default function SettingsTab({
   const [address, setAddress] = useState('')
   const [count, setCount] = useState('1')
   const [label, setLabel] = useState('')
+  const [dataType, setDataType] = useState('Word')
+
+  const DATA_TYPES = ['Word', 'Bit', 'DWord', 'Float', 'Double', 'String']
 
   const handleProtocolChange = (protoId) => {
     onSetProtocol(protoId)
@@ -24,10 +27,11 @@ export default function SettingsTab({
     const cnt = parseInt(count, 10)
     if (isNaN(addr) || addr < 0 || isNaN(cnt) || cnt < 1) return
 
-    onAdd(activeProtocol, device, addr, cnt, label)
+    onAdd(activeProtocol, device, addr, cnt, label, dataType)
     setAddress('')
     setCount('1')
     setLabel('')
+    setDataType('Word')
   }
 
   return (
@@ -96,6 +100,16 @@ export default function SettingsTab({
               style={{ width: 80 }}
             />
 
+            <select
+              className="settings-select"
+              value={dataType}
+              onChange={e => setDataType(e.target.value)}
+            >
+              {DATA_TYPES.map(t => (
+                <option key={t} value={t}>{t}</option>
+              ))}
+            </select>
+
             <input
               className="settings-input"
               type="text"
@@ -132,6 +146,7 @@ export default function SettingsTab({
                   <th>Device</th>
                   <th>Range</th>
                   <th>Count</th>
+                  <th>DataType</th>
                   <th>Label</th>
                   <th>Graph</th>
                   <th>Actions</th>
@@ -149,6 +164,9 @@ export default function SettingsTab({
                       {a.device}{a.address} ~ {a.device}{a.address + a.count - 1}
                     </td>
                     <td>{a.count}</td>
+                    <td style={{ color: 'var(--text-muted)', fontSize: '0.85em' }}>
+                      {a.dataType || 'Word'}
+                    </td>
                     <td>
                       <input
                         className="settings-input settings-input-inline"

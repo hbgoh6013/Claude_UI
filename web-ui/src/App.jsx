@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import useWebSocket from './useWebSocket'
 import useSettings from './useSettings'
 import useChartHistory from './useChartHistory'
@@ -13,8 +13,13 @@ const emptyData = {
 }
 
 function App() {
-  const { data, connected, logs, send } = useWebSocket('ws://localhost:8080')
+  // Use a ref to break the circular dependency between useWebSocket and useSettings
+  const configSyncRef = useRef(null)
+  const { data, connected, logs, send } = useWebSocket(undefined, {
+    onConfigSync: (...args) => configSyncRef.current?.(...args),
+  })
   const settings = useSettings(send, connected)
+  configSyncRef.current = settings.handleConfigSync
   const [activeTab, setActiveTab] = useState('monitor')
   const [demoMode, setDemoMode] = useState(false)
   const [lastUpdate, setLastUpdate] = useState(new Date())

@@ -45,11 +45,12 @@ export default function useSettings(send, connected) {
   }, [state])
 
   // 연결되면 현재 설정을 백엔드에 전송
-  useEffect(() => {
-    if (connected && addresses.length > 0) {
-      syncToBackend(addresses)
-    }
-  }, [connected])
+  // NOTE: config_sync로 서버에서 주소를 받으므로, 연결 시 자동 전송은 비활성화
+  // useEffect(() => {
+  //   if (connected && addresses.length > 0) {
+  //     syncToBackend(addresses)
+  //   }
+  // }, [connected])
 
   const syncToBackend = useCallback((addrs) => {
     send({
@@ -60,6 +61,8 @@ export default function useSettings(send, connected) {
         device: a.device,
         address: a.address,
         count: a.count,
+        label: a.label,
+        dataType: a.dataType || 'Word',
       })),
     })
   }, [send, activeProtocol])
@@ -68,7 +71,7 @@ export default function useSettings(send, connected) {
     setState(prev => ({ ...prev, activeProtocol: protocol }))
   }, [])
 
-  const addAddress = useCallback((protocol, device, address, count, label) => {
+  const addAddress = useCallback((protocol, device, address, count, label, dataType = 'Word') => {
     setState(prev => {
       const exists = prev.addresses.some(
         a => a.protocol === protocol && a.device === device && a.address === address && a.count === count
@@ -84,6 +87,7 @@ export default function useSettings(send, connected) {
           address,
           count,
           label: label || `${device}${address}`,
+          dataType,
           graphEnabled: false,
         }],
       }
@@ -115,6 +119,24 @@ export default function useSettings(send, connected) {
     }))
   }, [])
 
+  // Called when C++ sends config_sync — replaces address list with server config
+  const handleConfigSync = useCallback((serverAddresses) => {
+    if (!Array.isArray(serverAddresses) || serverAddresses.length === 0) return
+    setState(prev => ({
+      ...prev,
+      addresses: serverAddresses.map(a => ({
+        id: crypto.randomUUID(),
+        protocol: 'cclink',
+        device: a.device || 'D',
+        address: a.address ?? 0,
+        count: a.count ?? 1,
+        label: a.label || `${a.device}${a.address}`,
+        dataType: a.dataType || 'Word',
+        graphEnabled: false,
+      })),
+    }))
+  }, [])
+
   return {
     protocols: PROTOCOLS,
     activeProtocol,
@@ -124,5 +146,6 @@ export default function useSettings(send, connected) {
     removeAddress,
     updateAddress,
     toggleGraph,
+    handleConfigSync,
   }
 }

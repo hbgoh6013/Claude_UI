@@ -10,6 +10,7 @@ C++ Qt (WebSocket 서버, port 8080)  →  JSON  →  React (브라우저, port 
 
 ## Tech Stack
 
+본 프로젝트는 하기 환역에서 개발되었으나, 현장 도입을 위해 하위 버전(VS2017/Qt5)과의 호환성 유지가 필수적.
 | Layer | Technology |
 |-------|-----------|
 | C++ Backend | Qt 6.10.0 (MSVC 2022), QtNetwork only |
@@ -19,6 +20,7 @@ C++ Qt (WebSocket 서버, port 8080)  →  JSON  →  React (브라우저, port 
 | Persistence | localStorage (Settings) |
 
 **Qt 5.12.12 호환**: WebSocketServer는 QtNetwork만 사용하므로 Qt 5.12+에서도 빌드 가능.
+C++코드 작성시 C++17 표준까지만 사용하며, Qt6 전용 API 사용을 지양하고 Qt5/6 공용 API를 우선 사용함.
 
 ## File Structure
 
@@ -116,6 +118,15 @@ useChartHistory() → chartData[] (60-point rolling buffer)
 }
 ```
 
+## Development & Verification Rules
+  1. Strict Compatibility Check:
+    - 새 코드를 작성할 때 Qt 6 전용 클래스나 메서드 사용을 지양한다. (예: QRegularExpression은 가능하나 Qt6 전용 속성은 주의)
+    - C++ 표준은 C++17를 준수하여 VS2017 환경에서 문제가 없도록 한다.
+  2. Detailed Verification:
+    - 코드 작성 후 반드시 재검증: 새로 작성된 로직이 추후 부가적인 오류로 이어질 수 있는지, 메모리 관리에 문제가 없는지 다시 한번 자세히 검토한다.
+  3. UI 호환성:
+    - .ui 파일 수정 시 Qt 5.12 Designer에서도 열릴 수 있도록 최신 레이아웃 속성 사용 시 주의한다.
+  
 ## Key Design Decisions
 
 - **Qt WebSockets 모듈 미사용**: QtNetwork(QTcpServer)로 RFC 6455 직접 구현. 추가 모듈 설치 불필요, Qt 5/6 양쪽 호환.
@@ -133,7 +144,6 @@ useChartHistory() → chartData[] (60-point rolling buffer)
 
 ## TODO / Known Limitations
 
-1. **PLC 실제 연결**: `Claude_UI.cpp`의 `sendPlcData()`에서 시뮬레이션 데이터를 실제 PLC 읽기로 교체 필요 (mdfunc.h 등)
-2. **백엔드 설정 수신**: WebSocket으로 받은 settings_update 메시지 처리 로직 C++에 추가 필요
-3. **시스템 정보**: SystemMonitor가 현재 Demo 데이터만 표시. 백엔드에서 CPU/메모리/디스크 정보 전송 필요 (가이드: `시스템정보_백엔드_구현_가이드.txt`)
-4. **WebSocket Ping/Pong**: 미구현. 클라이언트 측 3초 재접속으로 대체.
+1. **백엔드 설정 수신**: WebSocket으로 받은 settings_update 메시지 처리 로직 C++에 추가 필요
+2. **시스템 정보**: SystemMonitor가 현재 Demo 데이터만 표시. 백엔드에서 CPU/메모리/디스크 정보 전송 필요 (가이드: `시스템정보_백엔드_구현_가이드.txt`)
+3. **WebSocket Ping/Pong**: 미구현. 클라이언트 측 3초 재접속으로 대체.
