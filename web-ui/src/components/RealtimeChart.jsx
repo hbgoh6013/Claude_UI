@@ -1,3 +1,4 @@
+import { useState, useRef } from 'react'
 import {
   ResponsiveContainer,
   LineChart,
@@ -9,20 +10,40 @@ import {
   Legend,
 } from 'recharts'
 
-// 다크 테마에 어울리는 차트 색상 팔레트
-const COLORS = [
-  '#60a5fa', '#22c55e', '#f59e0b', '#a78bfa',
-  '#f472b6', '#34d399', '#fb923c', '#38bdf8',
+const PALETTE = [
+  { name: 'Blue',    color: '#60a5fa' },
+  { name: 'Green',   color: '#22c55e' },
+  { name: 'Orange',  color: '#f59e0b' },
+  { name: 'Purple',  color: '#a78bfa' },
+  { name: 'Pink',    color: '#f472b6' },
+  { name: 'Teal',    color: '#34d399' },
+  { name: 'Amber',   color: '#fb923c' },
+  { name: 'Cyan',    color: '#38bdf8' },
+  { name: 'Red',     color: '#ef4444' },
+  { name: 'Lime',    color: '#a3e635' },
+  { name: 'Indigo',  color: '#818cf8' },
+  { name: 'Rose',    color: '#fb7185' },
+  { name: 'Sky',     color: '#7dd3fc' },
+  { name: 'Yellow',  color: '#facc15' },
+  { name: 'White',   color: '#e5e7eb' },
 ]
 
-/**
- * 실시간 시계열 차트
- *
- * @param {array} data - [{ time: "12:00:01", D0: 1234, D10: 500, ... }, ...]
- * @param {array} lineKeys - 그래프에 표시할 키 목록 ["D0", "D10", "M100", ...]
- * @param {object} labels - 키별 라벨 매핑 { D0: "Temperature", D10: "Pressure" }
- */
 export default function RealtimeChart({ data, lineKeys, labels = {}, height = 350 }) {
+  // 각 키별 색상 상태
+  const [colorMap, setColorMap] = useState({})
+  // 현재 색상 피커가 열린 키
+  const [pickerKey, setPickerKey] = useState(null)
+  const pickerRef = useRef(null)
+
+  function getColor(key, index) {
+    return colorMap[key] || PALETTE[index % PALETTE.length].color
+  }
+
+  function handleColorChange(key, color) {
+    setColorMap(prev => ({ ...prev, [key]: color }))
+    setPickerKey(null)
+  }
+
   if (!data || data.length === 0 || lineKeys.length === 0) {
     return (
       <div style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '40px 0' }}>
@@ -32,45 +53,78 @@ export default function RealtimeChart({ data, lineKeys, labels = {}, height = 35
   }
 
   return (
-    <ResponsiveContainer width="100%" height={height}>
-      <LineChart data={data}>
-        <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-        <XAxis
-          dataKey="time"
-          stroke="var(--text-muted)"
-          tick={{ fontSize: 11 }}
-          interval="preserveStartEnd"
-        />
-        <YAxis
-          stroke="var(--text-muted)"
-          tick={{ fontSize: 11 }}
-          width={60}
-        />
-        <Tooltip
-          contentStyle={{
-            backgroundColor: 'var(--bg-card)',
-            border: '1px solid var(--border)',
-            borderRadius: '6px',
-            color: 'var(--text-primary)',
-            fontSize: '12px',
-          }}
-        />
-        <Legend
-          wrapperStyle={{ fontSize: '12px', color: 'var(--text-secondary)' }}
-        />
+    <div className="chart-with-controls">
+      {/* Color selector bar */}
+      <div className="chart-color-bar">
         {lineKeys.map((key, i) => (
-          <Line
-            key={key}
-            type="monotone"
-            dataKey={key}
-            name={labels[key] || key}
-            stroke={COLORS[i % COLORS.length]}
-            strokeWidth={2}
-            dot={false}
-            isAnimationActive={false}
-          />
+          <div key={key} className="chart-color-item" ref={pickerKey === key ? pickerRef : null}>
+            <button
+              className="chart-color-swatch"
+              style={{ backgroundColor: getColor(key, i) }}
+              onClick={() => setPickerKey(pickerKey === key ? null : key)}
+              title={`Change color for ${labels[key] || key}`}
+            />
+            <span className="chart-color-label">{labels[key] || key}</span>
+
+            {/* Color picker dropdown */}
+            {pickerKey === key && (
+              <div className="chart-color-picker">
+                {PALETTE.map(p => (
+                  <button
+                    key={p.color}
+                    className={`chart-color-option ${getColor(key, i) === p.color ? 'active' : ''}`}
+                    style={{ backgroundColor: p.color }}
+                    onClick={() => handleColorChange(key, p.color)}
+                    title={p.name}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
         ))}
-      </LineChart>
-    </ResponsiveContainer>
+      </div>
+
+      {/* Chart */}
+      <ResponsiveContainer width="100%" height={height}>
+        <LineChart data={data}>
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+          <XAxis
+            dataKey="time"
+            stroke="#9ca3af"
+            tick={{ fontSize: 11, fill: '#d1d5db' }}
+            interval="preserveStartEnd"
+          />
+          <YAxis
+            stroke="#9ca3af"
+            tick={{ fontSize: 11, fill: '#d1d5db' }}
+            width={60}
+          />
+          <Tooltip
+            contentStyle={{
+              backgroundColor: 'var(--bg-card)',
+              border: '1px solid var(--border)',
+              borderRadius: '6px',
+              color: 'var(--text-primary)',
+              fontSize: '12px',
+            }}
+          />
+          <Legend
+            wrapperStyle={{ fontSize: '12px', color: 'var(--text-secondary)' }}
+          />
+          {lineKeys.map((key, i) => (
+            <Line
+              key={key}
+              type="monotone"
+              dataKey={key}
+              name={labels[key] || key}
+              stroke={getColor(key, i)}
+              strokeWidth={2}
+              dot={false}
+              isAnimationActive={false}
+            />
+          ))}
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
   )
 }

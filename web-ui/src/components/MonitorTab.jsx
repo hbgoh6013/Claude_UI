@@ -132,6 +132,11 @@ export default function MonitorTab({
 
   return (
     <main className="main">
+      {/* Chart Trends Divider */}
+      <div className="section-divider">
+        <span className="section-divider-label">Chart Trends</span>
+      </div>
+
       {/* Charts Grid - Combined + Individual 동일 크기 */}
       {hasAnyCharts && (
         <div className="individual-charts-grid">
