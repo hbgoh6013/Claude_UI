@@ -25,10 +25,16 @@ qt.natvis
 *.user
 
 # Qt build temp
-Claude_UI/x64/
+CC_Link_Test/x64/
+
+# Claude Code local settings
+.claude/
+
+# Third-party libraries (too large for git)
+CC_Link_Test/IntelliCC/include/
 
 # Node.js
-web-ui/node_modules/
+node_modules/
 
 # OS
 Thumbs.db
