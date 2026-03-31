@@ -118,12 +118,14 @@
     <QtMoc Include="IntelliCC.h" />
     <ClCompile Include="CCLink.cpp" />
     <ClCompile Include="IntelliCC.cpp" />
+    <ClCompile Include="SystemInfo.cpp" />
     <ClCompile Include="WebSocketServer.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="CCLink.h" />
     <QtMoc Include="CsvLog.h" />
+    <QtMoc Include="SystemInfo.h" />
     <ClInclude Include="Global.h" />
     <ClInclude Include="K:\My files\과제 08. 주액 리크 개선 데이터 취득 과제\Fitting\code\mpfit.h" />
     <ClInclude Include="LeakAlgo.h" />
